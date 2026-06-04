@@ -26,20 +26,20 @@ export const FIELD_LABELS = {
 };
 
 const FIELD_ALIASES = {
-  schoolFaculty: ['truong khoa', 'truong/khoa', 'school faculty'],
-  classCode: ['ma lop', 'class code'],
-  courseCode: ['ma hoc phan', 'course code'],
-  courseName: ['ten hoc phan', 'course name'],
-  notes: ['ghi chu', 'notes'],
-  group: ['nhom', 'group'],
-  examPeriod: ['dot', 'exam period'],
+  schoolFaculty: ['truong khoa', 'truong/khoa', 'khoa', 'don vi', 'school faculty', 'faculty'],
+  classCode: ['ma lop', 'lop', 'class code', 'class'],
+  courseCode: ['ma hoc phan', 'ma hp', 'ma mon hoc', 'ma mh', 'course code', 'subject code'],
+  courseName: ['ten hoc phan', 'ten hp', 'ten mon hoc', 'ten mh', 'mon hoc', 'course name', 'subject name'],
+  notes: ['ghi chu', 'note', 'notes'],
+  group: ['nhom hoc phan', 'nhom hp', 'nhom', 'group'],
+  examPeriod: ['dot thi', 'dot', 'exam period'],
   week: ['tuan', 'week'],
   dayOfWeek: ['thu', 'day of week'],
-  examDate: ['ngay thi', 'exam date'],
-  examSession: ['kip thi', 'exam session'],
-  studentCount: ['so luong', 'student count'],
-  examRoom: ['phong thi', 'exam room'],
-  examRoomCode: ['ma lop thi', 'exam room class code', 'room code']
+  examDate: ['ngay thi', 'ngay', 'exam date', 'date'],
+  examSession: ['kip thi', 'ca thi', 'kip', 'ca', 'exam session', 'session'],
+  studentCount: ['so luong', 'so sv', 'si so', 'student count', 'students'],
+  examRoom: ['phong thi', 'phong', 'exam room', 'room'],
+  examRoomCode: ['ma lop thi', 'ma phong', 'exam room class code', 'room code']
 };
 
 const REQUIRED_FIELDS = ['courseCode', 'courseName', 'examDate', 'examSession'];
@@ -180,7 +180,7 @@ function detectSessionMapping(row = []) {
   const text = row.map(formatCell).filter(Boolean).join(' | ');
   const normalized = normalizeText(text).replaceAll('=', ' = ');
   const mapping = {};
-  const regex = /kip\s*(\d+)\D+(\d{1,2})[:h](\d{2})/gi;
+  const regex = /(?:kip|ca)\s*(\d+)\D+(\d{1,2})[:h](\d{2})/gi;
   let match;
 
   while ((match = regex.exec(normalized)) !== null) {
@@ -231,7 +231,7 @@ function toLocalIso(date) {
 }
 
 function normalizeSessionKey(value) {
-  const match = normalizeText(value).match(/kip\s*(\d+)/i);
+  const match = normalizeText(value).match(/(?:kip|ca)\s*(\d+)/i);
   return match ? `Kip ${match[1]}` : formatCell(value);
 }
 

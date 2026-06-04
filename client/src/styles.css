@@ -197,6 +197,25 @@ label {
   color: #334155;
 }
 
+.import-warning {
+  margin: 0 0 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.import-warning p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.import-warning p + p {
+  margin-top: 4px;
+}
+
 .session-map span {
   background: #ecfdf5;
   color: #047857;

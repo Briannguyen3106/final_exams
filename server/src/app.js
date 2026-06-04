@@ -37,6 +37,14 @@ export function createApp() {
   }
 
   app.use((err, _req, res, _next) => {
+    if (err?.name === 'MulterError') {
+      const message = err.code === 'LIMIT_FILE_SIZE'
+        ? 'Excel file is too large. Upload a .xlsx file up to 15 MB.'
+        : err.message;
+      res.status(400).json({ error: message });
+      return;
+    }
+
     if (!err.status || err.status >= 500) {
       console.error(err);
     }

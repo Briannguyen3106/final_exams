@@ -17,6 +17,8 @@ const FIELD_OPTIONS = [
   ['examRoomCode', 'Exam Room/Class Code']
 ];
 
+const FIELD_LABELS = Object.fromEntries(FIELD_OPTIONS);
+
 export function ImportPanel({ currentUpload, importResult, onUpload, onReparse, onReplace, busy }) {
   const [file, setFile] = useState(null);
   const [headerRow, setHeaderRow] = useState('');
@@ -76,8 +78,22 @@ export function ImportPanel({ currentUpload, importResult, onUpload, onReparse, 
           <div className="import-summary">
             <span>Worksheet: {importResult.worksheetName}</span>
             <span>Header row: {importResult.headerRowIndex + 1}</span>
+            <span>Rows imported: {importResult.rowCount}</span>
             <span>{importResult.sessionMappingDetected ? 'Session mapping detected' : 'Default session mapping used'}</span>
           </div>
+
+          {(importResult.missingRequired?.length > 0 || importResult.rowCount === 0) && (
+            <div className="import-warning">
+              {importResult.missingRequired?.length > 0 && (
+                <p>
+                  Required columns not detected: {importResult.missingRequired.map((field) => FIELD_LABELS[field] || field).join(', ')}.
+                </p>
+              )}
+              {importResult.rowCount === 0 && (
+                <p>No schedule rows were imported. Adjust the header row or column mapping, then apply mapping.</p>
+              )}
+            </div>
+          )}
 
           <form className="mapping-grid" onSubmit={handleReparse}>
             <label>

@@ -14,6 +14,8 @@ A web app for signing in, importing an Excel exam schedule, selecting your own c
 
 Set `DATABASE_URL` and `JWT_SECRET` before starting the backend. Use a Supabase Postgres connection string for deployment, or a local Postgres connection string for development.
 
+For Supabase, prefer the Session pooler or Transaction pooler connection string if the direct `db.<project-ref>.supabase.co:5432` host does not resolve from your machine. Pooler URLs usually use a `*.pooler.supabase.com` host and a `postgres.<project-ref>` username. If the password contains characters such as `@`, `#`, `%`, `/`, or `?`, use the exact URL copied from Supabase or URL-encode the password.
+
 ```powershell
 $env:DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
 $env:JWT_SECRET="replace-with-a-long-random-secret"

@@ -54,6 +54,20 @@ Example:
 npm.cmd start
 ```
 
+## Supabase DNS Error
+
+If startup fails with an error like:
+
+```text
+getaddrinfo ENOTFOUND db.<project-ref>.supabase.co
+```
+
+the app has reached database initialization, but Node cannot resolve or use the direct Supabase database host. In Supabase Project Settings > Database, copy a pooled connection string instead of the direct connection string, then update `DATABASE_URL` in `.env`.
+
+Use the transaction or session pooler URI Supabase shows for the project. It commonly uses port `6543` and a host like `*.pooler.supabase.com`.
+
+If the database password contains special URL characters such as `@`, `#`, `%`, `/`, or `?`, use the connection string copied from Supabase or URL-encode those characters in `DATABASE_URL`.
+
 ## Blank Page Checklist
 
 1. Rebuild the client:
