@@ -1,29 +1,27 @@
 # Data And Parser
 
-## SQLite Storage
+## PostgreSQL Storage
 
-Database path:
+Database connection:
 
 ```text
-server/data/exam-schedule.sqlite
+DATABASE_URL
 ```
 
-Uploaded file storage:
+Temporary upload directory:
 
 ```text
 server/uploads/
 ```
 
+Uploaded `.xlsx` files are written to `server/uploads/` only long enough for ExcelJS to parse them. The active workbook bytes are persisted in `schedule_uploads.file_data` so manual reparse works on Render without relying on persistent local files.
+
 Tables:
 
+- `users`: auth accounts.
 - `schedule_uploads`: upload metadata and parser settings.
 - `schedule_rows`: normalized exam schedule rows.
 - `selected_exams`: user-selected schedule rows.
-
-SQLite pragmas:
-
-- `journal_mode = WAL`
-- `foreign_keys = ON`
 
 ## Schema Decisions
 
@@ -32,6 +30,8 @@ SQLite pragmas:
 - Normalized fields support search, dashboard display, and date logic.
 - `parse_warnings_json` keeps parser concerns available for future UI.
 - `raw_json` preserves source column values for debugging.
+
+Schedule, row, and selection records include `user_id` so signed-in users do not share dashboards.
 
 `selected_exams.schedule_row_id` is unique. A schedule row can only be selected once.
 

@@ -8,6 +8,16 @@ From the project root:
 npm.cmd start
 ```
 
+`DATABASE_URL` must be set before starting the server. For local development, use a local Postgres database or a Supabase connection string.
+
+PowerShell example:
+
+```powershell
+$env:DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
+$env:JWT_SECRET="replace-with-a-long-random-secret"
+npm.cmd start
+```
+
 Open:
 
 ```text
@@ -19,6 +29,8 @@ http://localhost:3001
 ```powershell
 npm.cmd run dev
 ```
+
+Set `DATABASE_URL` and `JWT_SECRET` in the same PowerShell session before running the dev command.
 
 Open:
 
@@ -76,13 +88,10 @@ Then stop the stale process if it belongs to this project.
 
 Generated local data:
 
-- `server/data/exam-schedule.sqlite`
-- `server/data/exam-schedule.sqlite-wal`
-- `server/data/exam-schedule.sqlite-shm`
 - `server/uploads/*`
 - `client/dist/*`
 
-These are local runtime/build artifacts. Do not edit SQLite files by hand.
+`server/uploads/*` contains temporary parser files only. Persistent schedule data lives in PostgreSQL.
 
 ## Quick Manual Test
 

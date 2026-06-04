@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { authRouter } from './routes/auth.js';
 import { schedulesRouter } from './routes/schedules.js';
 import { selectionsRouter } from './routes/selections.js';
 
@@ -24,6 +25,7 @@ export function createApp() {
     res.json({ ok: true });
   });
 
+  app.use('/api/auth', authRouter);
   app.use('/api/schedules', schedulesRouter);
   app.use('/api/selections', selectionsRouter);
 
@@ -35,7 +37,9 @@ export function createApp() {
   }
 
   app.use((err, _req, res, _next) => {
-    console.error(err);
+    if (!err.status || err.status >= 500) {
+      console.error(err);
+    }
     res.status(err.status || 500).json({
       error: err.message || 'Unexpected server error'
     });

@@ -5,6 +5,9 @@ import { ImportPanel } from './components/ImportPanel.jsx';
 import { api } from './services/api.js';
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
   const [currentUpload, setCurrentUpload] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,15 +24,65 @@ export default function App() {
   );
 
   useEffect(() => {
-    loadInitialData();
+    checkSession();
   }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (currentUpload) searchCourses(searchQuery);
+      if (user && currentUpload) searchCourses(searchQuery);
     }, 250);
     return () => clearTimeout(timeout);
-  }, [searchQuery, currentUpload]);
+  }, [searchQuery, currentUpload, user]);
+
+  async function checkSession() {
+    if (!api.getToken()) {
+      setAuthChecked(true);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const session = await api.getMe();
+      setUser(session.user);
+      await loadInitialData();
+    } catch {
+      api.setToken('');
+      setUser(null);
+    } finally {
+      setBusy(false);
+      setAuthChecked(true);
+    }
+  }
+
+  async function submitAuth(payload) {
+    setBusy(true);
+    try {
+      const result = authMode === 'signup'
+        ? await api.signup(payload)
+        : await api.login(payload);
+      api.setToken(result.token);
+      setUser(result.user);
+      setMessage(authMode === 'signup' ? 'Account created.' : 'Signed in.');
+      setError('');
+      await loadInitialData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function signOut() {
+    api.setToken('');
+    setUser(null);
+    setCurrentUpload(null);
+    setImportResult(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedExams([]);
+    setMessage('');
+    setError('');
+  }
 
   async function loadInitialData() {
     setBusy(true);
@@ -139,8 +192,11 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>Exam Schedule Manager</h1>
-          <p>Local dashboard for your selected exams</p>
+          <p>{user ? `Signed in as ${user.email}` : 'Sign in to manage your exam dashboard'}</p>
         </div>
+        {user && (
+          <button type="button" className="secondary" onClick={signOut}>Sign out</button>
+        )}
       </header>
 
       {(message || error) && (
@@ -150,31 +206,113 @@ export default function App() {
         </div>
       )}
 
-      <ImportPanel
-        currentUpload={currentUpload}
-        importResult={importResult}
-        onUpload={uploadSchedule}
-        onReparse={reparseSchedule}
-        onReplace={replaceSchedule}
-        busy={busy}
-      />
+      {!authChecked && <section className="panel"><p className="empty">Checking session...</p></section>}
 
-      <CourseSearch
-        query={searchQuery}
-        onQueryChange={setSearchQuery}
-        results={searchResults}
-        selectedIds={selectedIds}
-        onAdd={addSelection}
-        disabled={!currentUpload || busy}
-      />
+      {authChecked && !user && (
+        <AuthPanel
+          mode={authMode}
+          onModeChange={setAuthMode}
+          onSubmit={submitAuth}
+          busy={busy}
+        />
+      )}
 
-      <Dashboard
-        exams={selectedExams}
-        onRemove={removeSelection}
-        onClear={clearSelections}
-        onRefresh={refreshStatus}
-        now={now}
-      />
+      {authChecked && user && (
+        <>
+          <ImportPanel
+            currentUpload={currentUpload}
+            importResult={importResult}
+            onUpload={uploadSchedule}
+            onReparse={reparseSchedule}
+            onReplace={replaceSchedule}
+            busy={busy}
+          />
+
+          <CourseSearch
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            results={searchResults}
+            selectedIds={selectedIds}
+            onAdd={addSelection}
+            disabled={!currentUpload || busy}
+          />
+
+          <Dashboard
+            exams={selectedExams}
+            onRemove={removeSelection}
+            onClear={clearSelections}
+            onRefresh={refreshStatus}
+            now={now}
+          />
+        </>
+      )}
     </main>
+  );
+}
+
+function AuthPanel({ mode, onModeChange, onSubmit, busy }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const isSignup = mode === 'signup';
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    onSubmit({ email, password });
+  }
+
+  return (
+    <section className="panel auth-panel">
+      <div className="section-header">
+        <div>
+          <h2>{isSignup ? 'Create Account' : 'Sign In'}</h2>
+          <p>Your uploaded schedules and selected exams stay separate from other users.</p>
+        </div>
+        <div className="actions">
+          <button
+            type="button"
+            className={!isSignup ? '' : 'secondary'}
+            onClick={() => onModeChange('login')}
+            disabled={busy}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className={isSignup ? '' : 'secondary'}
+            onClick={() => onModeChange('signup')}
+            disabled={busy}
+          >
+            Sign up
+          </button>
+        </div>
+      </div>
+
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label>
+          Email
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            autoComplete={isSignup ? 'new-password' : 'current-password'}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            minLength={8}
+            required
+          />
+        </label>
+        <button type="submit" disabled={busy}>
+          {isSignup ? 'Create account' : 'Sign in'}
+        </button>
+      </form>
+    </section>
   );
 }

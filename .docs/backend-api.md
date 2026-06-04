@@ -3,14 +3,15 @@
 ## Stack
 
 - Express 4
-- `better-sqlite3`
+- `pg` for Supabase PostgreSQL
 - `multer` for `.xlsx` uploads
 - `exceljs` for parsing
 - `helmet`, `cors`, and `morgan`
+- Built-in Node `crypto` for password hashing and signed auth tokens
 
 ## Server Startup
 
-- `server/src/server.js` initializes SQLite and starts the Express app.
+- `server/src/server.js` initializes PostgreSQL schema and starts the Express app.
 - Default port is `3001`.
 - `server/src/app.js` wires middleware, API routes, static frontend serving, and error handling.
 
@@ -26,6 +27,20 @@ Health:
 - `GET /api/health`
 - Returns `{ ok: true }`.
 
+Auth:
+
+- `POST /api/auth/signup`
+- Body: `{ email, password }`.
+- Creates a user and returns `{ token, user }`.
+
+- `POST /api/auth/login`
+- Body: `{ email, password }`.
+- Returns `{ token, user }`.
+
+- `GET /api/auth/me`
+- Requires `Authorization: Bearer <token>`.
+- Returns the signed-in user.
+
 Schedules:
 
 - `GET /api/schedules/current`
@@ -37,15 +52,15 @@ Schedules:
 
 - `POST /api/schedules/upload`
 - Accepts a single `.xlsx` file.
-- Stores the upload in `server/uploads`.
+- Temporarily writes the upload for parsing, persists workbook bytes and normalized rows in PostgreSQL, then removes the temporary file.
 - Parses and replaces the active schedule.
 
 - `POST /api/schedules/reparse`
-- Reuses the stored active file.
+- Reuses the active workbook bytes stored in PostgreSQL.
 - Accepts manual `headerRowIndex` and `columnMapping`.
 
 - `DELETE /api/schedules/current`
-- Deletes active schedule rows, selected exams, upload records, and stored uploaded files.
+- Deletes the signed-in user's selected exams, schedule rows, and upload records.
 
 Selections:
 
@@ -54,7 +69,7 @@ Selections:
 
 - `POST /api/selections`
 - Body: `{ scheduleRowId }`.
-- Inserts a selected exam. Duplicate selected row IDs are ignored by SQLite uniqueness.
+- Inserts a selected exam. Duplicate selected row IDs are ignored by PostgreSQL uniqueness.
 
 - `DELETE /api/selections/:id`
 - Removes one selected exam by selection ID.
@@ -76,6 +91,8 @@ Use `server/src/utils/httpError.js` for status-specific errors.
 
 ## Important Decisions
 
+- Schedule and selection routes require a signed-in user.
+- All schedule and selection queries must stay scoped by `user_id`.
 - Keep route responses as DTOs with camelCase field names.
 - Keep file upload validation strict to `.xlsx`.
 - Do not parse all worksheets unless requested. Current behavior uses the first worksheet only.

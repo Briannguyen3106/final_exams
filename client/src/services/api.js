@@ -1,8 +1,18 @@
 const API_BASE = import.meta.env.VITE_API_BASE
   || (window.location.port === '5173' ? 'http://localhost:3001/api' : '/api');
 
+let authToken = window.localStorage.getItem('examScheduleToken') || '';
+
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, options);
+  const headers = {
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers
+  });
 
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
@@ -20,6 +30,28 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  setToken: (token) => {
+    authToken = token || '';
+    if (authToken) {
+      window.localStorage.setItem('examScheduleToken', authToken);
+    } else {
+      window.localStorage.removeItem('examScheduleToken');
+    }
+  },
+  getToken: () => authToken,
+  getMe: () => request('/auth/me'),
+  signup: (payload) =>
+    request('/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+  login: (payload) =>
+    request('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
   getCurrentSchedule: () => request('/schedules/current'),
   searchRows: (query) => request(`/schedules/rows?query=${encodeURIComponent(query)}`),
   uploadSchedule: (file) => {

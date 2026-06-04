@@ -18,6 +18,8 @@
 
 `App.jsx` keeps these important state values:
 
+- `user`: signed-in user metadata, or `null`.
+- `authChecked`: whether the stored token has been checked.
 - `currentUpload`: active schedule metadata, or `null`.
 - `importResult`: parser result after upload/reparse.
 - `searchQuery`: current course search text.
@@ -27,7 +29,11 @@
 - `message` and `error`: user-facing notices.
 - `now`: timestamp used to recalculate dashboard status.
 
-Initial load calls:
+Initial auth load calls:
+
+- `api.getMe()` when a stored token exists
+
+Signed-in data load calls:
 
 - `api.getCurrentSchedule()`
 - `api.getSelections()`
@@ -64,6 +70,12 @@ Search is debounced by 250ms and only runs after a schedule exists.
 
 This keeps one frontend build usable in both local development and `npm start`.
 
+## Auth Decision
+
+The frontend stores the signed auth token in `localStorage` and sends it as an `Authorization: Bearer <token>` header through `client/src/services/api.js`.
+
+When there is no valid user, the first screen is the sign in/sign up form. The upload/search/dashboard workflow is only rendered after auth succeeds.
+
 ## UI Style
 
 The UI is intentionally utilitarian:
@@ -73,4 +85,4 @@ The UI is intentionally utilitarian:
 - Clear upload/search/dashboard workflow.
 - Horizontal table scroll for small screens.
 
-Avoid turning this into a landing page. The first screen should remain the working app.
+Avoid turning this into a landing page. The first authenticated screen should remain the working app, not marketing content.

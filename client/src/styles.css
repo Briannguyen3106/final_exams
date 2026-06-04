@@ -217,6 +217,17 @@ label {
   margin-bottom: 14px;
 }
 
+.auth-panel {
+  max-width: 720px;
+}
+
+.auth-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -327,5 +338,9 @@ tbody tr.nearest td {
 
   .notice {
     align-items: flex-start;
+  }
+
+  .auth-form {
+    grid-template-columns: 1fr;
   }
 }
