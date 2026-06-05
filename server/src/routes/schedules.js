@@ -219,21 +219,30 @@ async function replaceActiveSchedule({ userId, originalName, storedName, fileDat
     ]);
     const uploadId = uploadResult.rows[0].id;
 
-    const insertedRows = [];
-    for (const row of parsed.rows) {
-      const inserted = await db.query(`
-        INSERT INTO schedule_rows (
-          upload_id, user_id, source_row_number, school_faculty, class_code, course_code,
-          course_name, notes, course_group, exam_period, week, day_of_week,
-          exam_date_raw, exam_session, student_count, exam_room, exam_room_code,
-          exam_time, exam_datetime, parse_warnings_json, raw_json
-        )
-        VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
-        )
-        RETURNING id
-      `, [
+    const insertedRows = await insertScheduleRows(db, { uploadId, userId, rows: parsed.rows });
+
+    for (const oldRow of previousSelections) {
+      const match = findBestReplacement(oldRow, insertedRows);
+      if (match) {
+        await db.query(
+          'INSERT INTO selected_exams (user_id, schedule_row_id) VALUES ($1, $2) ON CONFLICT (schedule_row_id) DO NOTHING',
+          [userId, match.id]
+        );
+      }
+    }
+  });
+}
+
+async function insertScheduleRows(db, { uploadId, userId, rows }) {
+  const insertedRows = [];
+  const batchSize = 1000;
+
+  for (let start = 0; start < rows.length; start += batchSize) {
+    const batch = rows.slice(start, start + batchSize);
+    const values = [];
+    const placeholders = batch.map((row, rowIndex) => {
+      const offset = rowIndex * 21;
+      values.push(
         uploadId,
         userId,
         row.sourceRowNumber,
@@ -255,20 +264,32 @@ async function replaceActiveSchedule({ userId, originalName, storedName, fileDat
         row.examDateTime,
         JSON.stringify(row.parseWarnings),
         JSON.stringify(row.raw)
-      ]);
-      insertedRows.push({ id: inserted.rows[0].id, ...row });
-    }
+      );
 
-    for (const oldRow of previousSelections) {
-      const match = findBestReplacement(oldRow, insertedRows);
-      if (match) {
-        await db.query(
-          'INSERT INTO selected_exams (user_id, schedule_row_id) VALUES ($1, $2) ON CONFLICT (schedule_row_id) DO NOTHING',
-          [userId, match.id]
-        );
-      }
+      return `(${Array.from({ length: 21 }, (_value, index) => `$${offset + index + 1}`).join(', ')})`;
+    });
+
+    const result = await db.query(`
+      INSERT INTO schedule_rows (
+        upload_id, user_id, source_row_number, school_faculty, class_code, course_code,
+        course_name, notes, course_group, exam_period, week, day_of_week,
+        exam_date_raw, exam_session, student_count, exam_room, exam_room_code,
+        exam_time, exam_datetime, parse_warnings_json, raw_json
+      )
+      VALUES ${placeholders.join(', ')}
+      RETURNING id, source_row_number
+    `, values);
+
+    const idsBySourceRow = new Map(
+      result.rows.map((inserted) => [inserted.source_row_number, inserted.id])
+    );
+
+    for (const row of batch) {
+      insertedRows.push({ id: idsBySourceRow.get(row.sourceRowNumber), ...row });
     }
-  });
+  }
+
+  return insertedRows;
 }
 
 function findBestReplacement(oldRow, newRows) {
